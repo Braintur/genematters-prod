@@ -449,7 +449,7 @@ def get_article_images(article_id):
             {
                 'id': img.id,
                 'url': img.url,
-                'code': f'<img src="{img.url}" alt="Article image">'
+                'code': f'<img src="{img.url}" alt="Article image" style="width: 100%; height: auto;">'
             }
             for img in images
         ]
@@ -467,7 +467,7 @@ def get_temp_images():
             {
                 'id': img.id,
                 'url': img.url,
-                'code': f'<img src="{img.url}" alt="Article image">'
+                'code': f'<img src="{img.url}" alt="Article image" style="width: 100%; height: auto;">'
             }
             for img in images
         ]

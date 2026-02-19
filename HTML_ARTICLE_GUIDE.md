@@ -121,6 +121,60 @@ function example() {
 <p>Second paragraph after a break.</p>
 ```
 
+## Images
+
+### Inserting Images
+
+When you upload an image, you can insert it into your article. Images are automatically provided with default sizing styles.
+
+**Default image tag (automatically inserted):**
+```html
+<img src="https://cdn.example.com/image.jpg" alt="Article image" style="width: 100%; height: auto;">
+```
+
+### Resizing Images
+
+You can easily adjust image size using the `style` attribute with percentages:
+
+**Full width (default):**
+```html
+<img src="image.jpg" alt="description" style="width: 100%; height: auto;">
+```
+
+**Half width:**
+```html
+<img src="image.jpg" alt="description" style="width: 50%; height: auto;">
+```
+
+**75% width:**
+```html
+<img src="image.jpg" alt="description" style="width: 75%; height: auto;">
+```
+
+**Fixed size with max-width:**
+```html
+<img src="image.jpg" alt="description" style="width: 400px; height: auto;">
+```
+
+### Centering Images
+
+To center an image, wrap it in a paragraph with center alignment:
+```html
+<p style="text-align: center;">
+    <img src="image.jpg" alt="description" style="width: 75%; height: auto;">
+</p>
+```
+
+### Image Sizing Tips
+
+- **`width: 100%;`** - Image takes full container width
+- **`height: auto;`** - Maintains aspect ratio (recommended)
+- **Use percentages** (1-100%) for responsive sizing
+- **Common sizes:**
+  - `50%` - Half width (good for side-by-side layouts)
+  - `75%` - Three-quarters width
+  - `33%` - One-third width (for galleries)
+
 ## Styling Available
 
 Articles automatically inherit the following styles:
