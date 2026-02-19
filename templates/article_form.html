@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}{% if article %}Edit{% else %}Create{% endif %} Article{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+{% endblock %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<style>
+    .form-wrapper {
+        max-width: 700px;
+    }
+
+    .form-header {
+        margin-bottom: 20px;
+    }
+
+    .error-message {
+        background: rgba(220, 53, 69, 0.2);
+        border-left: 4px solid #dc3545;
+        color: #ff6b6b;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .form-section {
+        margin-bottom: 25px;
+    }
+
+    .form-section label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .form-section input[type="text"],
+    .form-section textarea {
+        width: 100%;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 10px;
+        color: var(--color-white);
+        font-family: var(--font-primary);
+        font-size: var(--font-size-sm);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        box-sizing: border-box;
+    }
+
+    .form-section input[type="text"]:focus,
+    .form-section textarea:focus {
+        outline: none;
+        border-color: rgba(16, 185, 129, 0.6);
+        background: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+    }
+
+    .form-section textarea {
+        resize: vertical;
+        min-height: 300px;
+        font-family: 'Courier New', monospace;
+    }
+
+    .upload-section {
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+
+    .upload-section h4 {
+        font-size: var(--font-size-md);
+        font-weight: var(--font-weight-semibold);
+        margin: 0 0 12px 0;
+        background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .upload-btn {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: var(--color-white);
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: var(--font-weight-semibold);
+        font-size: var(--font-size-sm);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+
+    .upload-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    }
+
+    #imageInput {
+        display: none;
+    }
+
+    .uploaded-images {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 10px;
+        display: none;
+    }
+
+    .uploaded-images.show {
+        display: block;
+    }
+
+    .uploaded-images h5 {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0 0 15px 0;
+        font-size: var(--font-size-sm);
+    }
+
+    .images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+    }
+
+    .image-item {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 8px;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+
+    .image-item:hover {
+        border-color: rgba(34, 197, 94, 0.6);
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .image-preview {
+        width: 100%;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+
+    .image-insert-btn {
+        font-size: var(--font-size-xs);
+        background: rgba(34, 197, 94, 0.3);
+        color: #22c55e;
+        border: 1px solid #22c55e;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 4px;
+        width: 100%;
+    }
+
+    .image-insert-btn:hover {
+        background: #22c55e;
+        color: white;
+    }
+
+    .image-delete-btn {
+        font-size: var(--font-size-xs);
+        background: rgba(220, 53, 69, 0.3);
+        color: #ff6b6b;
+        border: 1px solid #ff6b6b;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 2px;
+        width: 100%;
+    }
+
+    .image-delete-btn:hover {
+        background: #ff6b6b;
+        color: white;
+    }
+
+    .image-buttons {
+        display: flex;
+        gap: 4px;
+    }
+
+    .image-buttons button {
+        flex: 1;
+    }
+
+    #uploadStatus {
+        margin-top: 8px;
+        font-size: var(--font-size-xs);
+    }
+
+    .form-hint {
+        font-size: var(--font-size-xs);
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 8px;
+    }
+
+    .form-buttons {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+    }
+
+    .submit-btn,
+    .cancel-btn {
+        flex: 1;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .submit-btn {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: var(--color-white);
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+    }
+
+    .cancel-btn {
+        background: linear-gradient(135deg, #7c3aed, #a78bfa);
+        color: var(--color-white);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+    }
+
+    .cancel-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+    }
+
+    .delete-btn {
+        background: linear-gradient(135deg, #dc3545, #bb2d3b);
+        color: var(--color-white);
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    }
+
+    .delete-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+    }
+
+    .guide-link {
+        color: #22c55e;
+        text-decoration: underline;
+        transition: color 0.3s;
+        margin-left: 8px;
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .guide-link:hover {
+        color: #16a34a;
+    }
+</style>
+
+<div class="form-wrapper">
+    <h2 class="form-header">{% if article %}Edit Article{% else %}Create New Article{% endif %}</h2>
+
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" id="articleForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="image_ids" id="imageIds" value="">
+        
+        <div class="form-section">
+            <label for="title">Article Title</label>
+            <input 
+                type="text" 
+                id="title" 
+                name="title" 
+                required 
+                value="{{ article.title if article else '' }}"
+                placeholder="Enter your article title..."
+            >
+        </div>
+
+        <div class="upload-section">
+            <h4>Insert Images</h4>
+            <button type="button" class="upload-btn" id="uploadImageBtn">Choose Image</button>
+            <input type="file" id="imageInput" accept="image/*">
+            <div id="uploadStatus"></div>
+            <div class="uploaded-images" id="uploadedImages">
+                <h5>Uploaded Images (click to insert)</h5>
+                <div class="images-grid" id="imagesGrid"></div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label for="content">Content
+                <a href="{{ url_for('html_guide') }}" target="_blank" class="guide-link">(View Guide →)</a>
+            </label>
+            <textarea 
+                id="content" 
+                name="content" 
+                required
+                placeholder="Write your article content... Use HTML for formatting (h2, h3, p, strong, em, ul, li, etc.)"
+            >{{ article.content if article else '' }}</textarea>
+            <p class="form-hint">
+                💡 Supported: &lt;h2&gt;, &lt;h3&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;blockquote&gt;
+            </p>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="submit-btn">
+                {% if article %}Save Changes{% else %}Create Article{% endif %}
+            </button>
+            <a href="{% if article %}{{ url_for('article', article_id=article.id) }}{% else %}{{ url_for('list_articles') }}{% endif %}" class="cancel-btn">
+                Cancel
+            </a>
+        </div>
+    </form>
+
+    {% if article %}
+    <form method="POST" action="{{ url_for('delete_article', article_id=article.id) }}" style="margin-top: 20px;" onsubmit="return confirm('Are you sure you want to delete this article? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="delete-btn" style="width: auto;">Delete Article</button>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+// Initialize URLs and data
+const uploadImageUrl = '{{ url_for("upload_image") }}';
+const articleId = {{ article.id if article else 'null' }};
+
+let uploadedImages = [];
+
+// Load images from database if editing, or from database for new articles (temp images)
+function loadUploadedImages() {
+    if (articleId) {
+        // Editing: Load from database (linked to article)
+        fetch(`/get-article-images/${articleId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    uploadedImages = data.images;
+                    updateImageGallery();
+                }
+            })
+            .catch(error => console.error('Failed to load images:', error));
+    } else {
+        // Creating new: Load temporary unlinked images from database
+        fetch(`/get-temp-images`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    uploadedImages = data.images;
+                    updateImageGallery();
+                }
+            })
+            .catch(error => console.error('Failed to load temp images:', error));
+    }
+}
+
+document.getElementById('uploadImageBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('imageInput').click();
+});
+
+document.getElementById('imageInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+    if (articleId) {
+        formData.append('article_id', articleId);
+    }
+
+    const uploadStatus = document.getElementById('uploadStatus');
+    uploadStatus.innerHTML = '<p style="color: #22c55e;">Uploading...</p>';
+
+    fetch(uploadImageUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            uploadedImages.push({
+                id: data.id,
+                url: data.url,
+                code: `<img src="${data.url}" alt="Article image">`
+            });
+            updateImageGallery();
+            uploadStatus.innerHTML = '<p style="color: #22c55e;">✓ Image uploaded!</p>';
+            document.getElementById('imageInput').value = '';
+        } else {
+            uploadStatus.innerHTML = `<p style="color: #ff6b6b;">Error: ${data.error}</p>`;
+        }
+    })
+    .catch(error => {
+        uploadStatus.innerHTML = `<p style="color: #ff6b6b;">Upload failed: ${error}</p>`;
+    });
+});
+
+function updateImageGallery() {
+    const imagesGrid = document.getElementById('imagesGrid');
+    const uploadedImagesContainer = document.getElementById('uploadedImages');
+    
+    if (uploadedImages.length === 0) {
+        uploadedImagesContainer.classList.remove('show');
+        return;
+    }
+
+    uploadedImagesContainer.classList.add('show');
+    imagesGrid.innerHTML = uploadedImages.map((img, index) => `
+        <div class="image-item">
+            <img src="${img.url}" alt="Uploaded image" class="image-preview">
+            <div class="image-buttons">
+                <button type="button" class="image-insert-btn" onclick="insertImageCode(${index})">Insert</button>
+                <button type="button" class="image-delete-btn" onclick="deleteImage(${index})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function insertImageCode(index) {
+    const textarea = document.getElementById('content');
+    const code = uploadedImages[index].code;
+    
+    // Insert at cursor position or at the end
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const before = textarea.value.substring(0, start);
+    const after = textarea.value.substring(end);
+    
+    textarea.value = before + code + '\n' + after;
+    textarea.focus();
+    textarea.setSelectionRange(start + code.length + 1, start + code.length + 1);
+}
+
+function deleteImage(index) {
+    const imageId = uploadedImages[index].id;
+    fetch(`/delete-article-image/${imageId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            uploadedImages.splice(index, 1);
+            updateImageGallery();
+        }
+    });
+}
+
+// Handle form submission - save image IDs
+document.getElementById('articleForm').addEventListener('submit', function(e) {
+    if (!articleId) {
+        // Only for new articles - pass image IDs to backend to link them
+        const imageIds = uploadedImages.map(img => img.id).join(',');
+        document.getElementById('imageIds').value = imageIds;
+    }
+});
+
+// Load images when page loads
+loadUploadedImages();
+</script>
+
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Accounts{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+{% endblock %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+<style>
+    .admin-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .admin-header {
+        margin-bottom: 30px;
+    }
+
+    .admin-header h2 {
+        color: var(--color-white);
+        margin-bottom: 10px;
+    }
+
+    .admin-header p {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .admins-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 10px;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+
+    .admins-table thead {
+        background: rgba(34, 197, 94, 0.1);
+        border-bottom: 2px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .admins-table th {
+        padding: 15px;
+        text-align: left;
+        color: #22c55e;
+        font-weight: var(--font-weight-semibold);
+        font-size: var(--font-size-sm);
+    }
+
+    .admins-table td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(34, 197, 94, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: var(--font-size-sm);
+    }
+
+    .admins-table tbody tr:hover {
+        background: rgba(34, 197, 94, 0.05);
+    }
+
+    .admin-role {
+        display: inline-block;
+        padding: 4px 12px;
+        background: rgba(124, 58, 237, 0.2);
+        color: #a78bfa;
+        border-radius: 20px;
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    .admin-role.super {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+    }
+
+    .delete-action {
+        text-align: center;
+    }
+
+    .delete-btn-small {
+        background: rgba(220, 53, 69, 0.3);
+        color: #ff6b6b;
+        border: 1px solid #ff6b6b;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: var(--font-size-xs);
+        transition: all 0.3s;
+    }
+
+    .delete-btn-small:hover {
+        background: #ff6b6b;
+        color: white;
+    }
+
+    .delete-btn-small:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination {
+        margin-top: 30px;
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 4px;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        font-size: var(--font-size-sm);
+        transition: all 0.3s;
+    }
+
+    .pagination a:hover {
+        background: rgba(34, 197, 94, 0.2);
+        border-color: #22c55e;
+        color: #22c55e;
+    }
+
+    .pagination span.active {
+        background: #22c55e;
+        color: black;
+        border-color: #22c55e;
+    }
+
+    .back-link {
+        color: #22c55e;
+        text-decoration: underline;
+        transition: color 0.3s;
+        margin-bottom: 20px;
+        display: inline-block;
+    }
+
+    .back-link:hover {
+        color: #16a34a;
+    }
+
+    .no-admins {
+        text-align: center;
+        padding: 40px;
+        color: rgba(255, 255, 255, 0.7);
+    }
+</style>
+
+<div class="admin-wrapper">
+    <a href="{{ url_for('about_us') }}" class="back-link">← Back to Home</a>
+
+    <div class="admin-header">
+        <h2>Admin Accounts Management</h2>
+        <p>Total admins: {{ admins.total }}</p>
+    </div>
+
+    {% if admins.items %}
+    <table class="admins-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th class="delete-action">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for admin in admins.items %}
+            <tr>
+                <td>
+                    {% if admin.id == current_user.id %}
+                    <strong>{{ admin.username }} (You)</strong>
+                    {% else %}
+                    {{ admin.username }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if admin.is_super_admin %}
+                    <span class="admin-role super">Super Admin</span>
+                    {% else %}
+                    <span class="admin-role">Admin</span>
+                    {% endif %}
+                </td>
+                <td>{{ admin.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="delete-action">
+                    {% if not admin.is_super_admin and admin.id != current_user.id %}
+                    <form method="POST" action="{{ url_for('delete_admin_account', user_id=admin.id) }}" style="display: inline;" onsubmit="return confirm('Delete admin account &quot;{{ admin.username }}&quot;? All their articles will be deleted.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="delete-btn-small">Delete</button></form>
+                    {% else %}
+                    <button class="delete-btn-small" disabled>Cannot delete</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if admins.pages > 1 %}
+    <div class="pagination">
+        {% if admins.has_prev %}
+        <a href="{{ url_for('admin_accounts', page=admins.prev_num) }}">← Previous</a>
+        {% endif %}
+
+        {% for page_num in admins.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == admins.page %}
+                <span class="active">{{ page_num }}</span>
+                {% else %}
+                <a href="{{ url_for('admin_accounts', page=page_num) }}">{{ page_num }}</a>
+                {% endif %}
+            {% else %}
+            <span>...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if admins.has_next %}
+        <a href="{{ url_for('admin_accounts', page=admins.next_num) }}">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="no-admins">
+        <p>No admin accounts found.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

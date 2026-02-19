@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+{% endblock %}
+
+{% block header %}
+{% endblock %}
+
+{% block content %}
+    <div class="form-wrapper">
+        <article class="dna-article">
+            <h2 class="form-header">DNA Sequence Analysis</h2>
+            <p class="dna-article-text">Welcome to our DNA sequence analyzer. Enter your DNA sequence below to get started with the analysis. 
+            Your sequence will be processed and validated, then you'll be redirected to the results page based on the analysis.</p>
+            <p class="dna-article-text">Please ensure your sequence contains only valid DNA nucleotides (A, T, G, C).</p>
+        </article>
+
+        <div class="dna-input-section">
+            <h3 class="dna-section-title">Enter Your DNA Sequence</h3>
+            <form id="dnaForm" method="POST" action="{{ url_for('check_dna') }}">
+                <textarea 
+                    id="dnaSequence" 
+                    name="dna_sequence" 
+                    class="dna-textarea"
+                    placeholder="Enter DNA sequence here..." 
+                    rows="6" 
+                    required></textarea>
+                <button type="submit" class="form-button dna-submit-button">Analyze Sequence</button>
+            </form>
+            <div id="loading" class="dna-loading" style="display:none;">
+                <p>Analyzing your sequence...</p>
+            </div>
+            <div id="error" class="dna-error" style="display:none;"></div>
+        </div>
+    </div>
+
+    <style>
+        .dna-article {
+            margin-bottom: 30px;
+        }
+
+        .dna-article-text {
+            font-size: var(--font-size-sm);
+            line-height: 1.6;
+            color: var(--color-white);
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .dna-section-title {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dna-textarea {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            color: var(--color-white);
+            font-family: 'Courier New', monospace;
+            font-size: var(--font-size-sm);
+            resize: vertical;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .dna-textarea:focus {
+            outline: none;
+            border-color: rgba(16, 185, 129, 0.6);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .dna-textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .dna-submit-button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            font-size: var(--font-size-sm);
+        }
+
+        .dna-loading {
+            margin-top: 20px;
+            text-align: center;
+            opacity: 0.8;
+        }
+
+        .dna-error {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            color: #fca5a5;
+            text-align: center;
+            font-size: var(--font-size-sm);
+        }
+    </style>
+
+    <script>
+        document.getElementById('dnaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const dnaSequence = document.getElementById('dnaSequence').value;
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            
+            try {
+                const response = await fetch('{{ url_for("check_dna") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ dna_sequence: dnaSequence })
+                });
+                
+                const data = await response.json();
+                
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else if (data.error) {
+                    error.style.display = 'block';
+                    error.textContent = data.error;
+                    loading.style.display = 'none';
+                }
+            } catch (err) {
+                error.style.display = 'block';
+                error.textContent = 'An error occurred. Please try again.';
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+{% endblock %}

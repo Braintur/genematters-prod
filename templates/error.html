@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Error{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+    <style>
+        .error-container {
+            max-width: 600px;
+            margin: 80px auto;
+            padding: 60px 40px;
+            background: var(--color-bg-secondary);
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-container h2 {
+            color: var(--color-white);
+            font-size: 2rem;
+            margin: 20px 0;
+        }
+
+        .error-container p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .back-link {
+            display: inline-block;
+            background: var(--color-accent);
+            color: var(--color-white);
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: var(--color-accent-hover);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-icon">⚠️</div>
+    <h2>Error</h2>
+    <p>{{ message }}</p>
+    <a href="{{ url_for('about_us') }}" class="back-link">Go Home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/fonts.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/footer.css') }}">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1;
+        }
+    </style>
+    {% block styles %}{% endblock %}
+    <title>{% block title %}Document{% endblock %}</title>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">LOGO</a>
+        <ul class="nav-menu">
+            <li><a href="/">Home</a></li>
+            <li><a href="/articles">Articles</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+            {% if current_user.is_authenticated %}
+                <li><a href="/my-articles">My Articles</a></li>
+                <li><a href="/article/new" style="color: var(--color-accent);">+ New Article</a></li>
+                {% if current_user.is_super_admin %}
+                <li><a href="/admin-accounts" style="color: #7c3aed;">👤 Admin Panel</a></li>
+                {% endif %}
+                <li><span style="color: var(--color-navbar-text-auth); margin: 0 10px;">{{ current_user.username }}</span></li>
+                <li><a href="/logout">Logout</a></li>
+            {% endif %}
+        </ul>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
+    <div class="nav-menu-mobile">
+        <a href="/">Home</a>
+        <a href="/articles">Articles</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        {% if current_user.is_authenticated %}
+            <a href="/my-articles">My Articles</a>
+            <a href="/article/new">+ New Article</a>
+            {% if current_user.is_super_admin %}
+            <a href="/admin-accounts">👤 Admin Panel</a>
+            {% endif %}
+            <a href="/logout">Logout ({{ current_user.username }})</a>
+        {% endif %}
+    </div>
+
+    <main>
+        {% block header %}{% endblock %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include 'footer.html' %}
+
+    <script src="{{ url_for('static', filename='js/navbar.js') }}"></script>
+</body>
+</html>
+</body>
+</html>
