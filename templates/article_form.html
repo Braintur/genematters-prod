@@ -290,7 +290,25 @@
     .guide-link:hover {
         color: #16a34a;
     }
+
+    .CodeMirror {
+        min-height: 360px;
+        height: auto;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 10px;
+        font-size: var(--font-size-sm);
+        font-family: 'Courier New', monospace;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .CodeMirror-focused {
+        border-color: rgba(16, 185, 129, 0.6);
+        box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+    }
 </style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
 
 <div class="form-wrapper">
     <h2 class="form-header">{% if article %}Edit Article{% else %}Create New Article{% endif %}</h2>
@@ -359,10 +377,41 @@
     {% endif %}
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/xml-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
+
 <script>
 // Initialize URLs and data
 const uploadImageUrl = '{{ url_for("upload_image") }}';
 const articleId = {{ article.id if article else 'null' }};
+
+const contentTextarea = document.getElementById('content');
+const contentEditor = CodeMirror.fromTextArea(contentTextarea, {
+    mode: 'htmlmixed',
+    lineNumbers: true,
+    lineWrapping: true,
+    autoCloseTags: true,
+    extraKeys: {
+        'Ctrl-Space': 'autocomplete'
+    },
+    hintOptions: {
+        completeSingle: false,
+        closeCharacters: /[\s>]/
+    }
+});
+
+contentEditor.on('inputRead', function(cm, change) {
+    if (change.text && change.text.length === 1 && /[\w<]/.test(change.text[0])) {
+        CodeMirror.commands.autocomplete(cm, null, { completeSingle: false });
+    }
+});
 
 let uploadedImages = [];
 
@@ -460,18 +509,23 @@ function updateImageGallery() {
 }
 
 function insertImageCode(index) {
-    const textarea = document.getElementById('content');
     const code = uploadedImages[index].code;
-    
-    // Insert at cursor position or at the end
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const before = textarea.value.substring(0, start);
-    const after = textarea.value.substring(end);
-    
-    textarea.value = before + code + '\n' + after;
-    textarea.focus();
-    textarea.setSelectionRange(start + code.length + 1, start + code.length + 1);
+
+    if (contentEditor) {
+        const cursor = contentEditor.getCursor();
+        contentEditor.replaceRange(code + '\n', cursor);
+        contentEditor.focus();
+    } else {
+        const textarea = document.getElementById('content');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+
+        textarea.value = before + code + '\n' + after;
+        textarea.focus();
+        textarea.setSelectionRange(start + code.length + 1, start + code.length + 1);
+    }
 }
 
 function deleteImage(index) {
@@ -493,6 +547,10 @@ function deleteImage(index) {
 
 // Handle form submission - save image IDs
 document.getElementById('articleForm').addEventListener('submit', function(e) {
+    if (contentEditor) {
+        contentEditor.save();
+    }
+
     if (!articleId) {
         // Only for new articles - pass image IDs to backend to link them
         const imageIds = uploadedImages.map(img => img.id).join(',');
