@@ -667,12 +667,12 @@ def page_not_found(e):
 def forbidden(e):
     return render_template('error.html', message='Access denied'), 403
 
-if __name__ == "__main__":
+def initialize_database():
+    """Initialize database objects and apply lightweight schema upgrades."""
     with app.app_context():
         db.create_all()
         ensure_article_schema()
-        
-        # Ensure mikhail is a super_admin (if exists)
+
         try:
             mikhail = User.query.filter_by(username='mikhail').first()
             if mikhail and not mikhail.is_super_admin:
@@ -680,6 +680,10 @@ if __name__ == "__main__":
                 mikhail.is_admin = True
                 db.session.commit()
         except Exception as e:
-            print(f"Note: Could not update mikhail account: {e}")
-    
+            app.logger.warning("Could not update mikhail account: %s", e)
+
+# Run initialization in every runtime (including Gunicorn/Heroku)
+initialize_database()
+
+if __name__ == "__main__":
     app.run(debug=True)
