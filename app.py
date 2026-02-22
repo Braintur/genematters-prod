@@ -220,16 +220,19 @@ def html_guide():
 def create_article():
     """Create new article"""
     if request.method == 'POST':
+        app.logger.warning("Create article POST received from user_id=%s", current_user.id)
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
         image_ids = request.form.get('image_ids', '').strip()  # Get image IDs from form
         
         if not title or not content:
+            app.logger.warning("Create article validation failed for user_id=%s (title/content missing)", current_user.id)
             return render_template('article_form.html', error='Title and content are required')
         
         article = Article(title=title, content=content, user_id=current_user.id)
         db.session.add(article)
         db.session.commit()
+        app.logger.warning("Article created successfully: article_id=%s user_id=%s", article.id, current_user.id)
         
         # Link any uploaded images to this article
         if image_ids:
@@ -240,7 +243,7 @@ def create_article():
                     image.article_id = article.id
                 db.session.commit()
             except Exception as e:
-                print(f"Error linking images to article: {e}")
+                app.logger.exception("Error linking images to article_id=%s: %s", article.id, e)
         
         return redirect(url_for('article', article_id=article.id))
     
@@ -566,7 +569,33 @@ def check_dna():
         return jsonify({'error': 'DNA analysis failed'})
 
 def dna_id(dna_seq):
-    return True
+    code_tripplet = {"UUU":"Phe", "UUC":"Phe", "UUA":"Leu", "UUG":"Leu",
+    "CUU":"Leu", "CUC":"Leu", "CUA":"Leu", "CUG":"Leu",
+    "AUU":"Ile", "AUC":"Ile", "AUA":"Ile", "AUG":"Met",
+    "GUU":"Val", "GUC":"Val", "GUA":"Val", "GUG":"Val",
+    "UCU":"Ser", "UCC":"Ser", "UCA":"Ser", "UCG":"Ser",
+    "CCU":"Pro", "CCC":"Pro", "CCA":"Pro", "CCG":"Pro",
+    "ACU":"Thr", "ACC":"Thr", "ACA":"Thr", "ACG":"Thr",
+    "GCU":"Ala", "GCC":"Ala", "GCA":"Ala", "GCG":"Ala",
+    "UAU":"Tyr", "UAC":"Tyr", "UAA":"STOP", "UAG":"STOP",
+    "CAU":"His", "CAC":"His", "CAA":"Gln", "CAG":"Gln",
+    "AAU":"Asn", "AAC":"Asn", "AAA":"Lys", "AAG":"Lys",
+    "GAU":"Asp", "GAC":"Asp", "GAA":"Glu", "GAG":"Glu",
+    "UGU":"Cys", "UGC":"Cys", "UGA":"STOP", "UGG":"Trp",
+    "CGU":"Arg", "CGC":"Arg", "CGA":"Arg", "CGG":"Arg",
+    "AGU":"Ser", "AGC":"Ser", "AGA":"Arg", "AGG":"Arg",
+    "GGU":"Gly", "GGC":"Gly", "GGA":"Gly", "GGG":"Gly"}
+    rna_seq = dna_seq.replace("T","U")
+    protein = []
+    for i in range(0, len(rna_seq),3):
+        codon = rna_seq[i:i+3]
+        if len(codon)<3:
+            break 
+        aa = code_tripplet.get(codon,"?")
+        if aa == "STOP":
+            break
+        protein.append(aa)
+    return protein
 
 # ===== ERROR HANDLERS =====
 @app.errorhandler(404)

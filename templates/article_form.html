@@ -415,7 +415,6 @@
             <textarea 
                 id="content" 
                 name="content" 
-                required
                 placeholder="Write your article content... Use HTML for formatting (h2, h3, p, strong, em, ul, li, etc.)"
             >{{ article.content if article else '' }}</textarea>
             <p class="form-hint">
@@ -470,6 +469,8 @@ const contentEditor = CodeMirror.fromTextArea(contentTextarea, {
         closeCharacters: /[\s>]/
     }
 });
+
+contentTextarea.removeAttribute('required');
 
 contentEditor.on('inputRead', function(cm, change) {
     if (change.text && change.text.length === 1 && /[\w<]/.test(change.text[0])) {
@@ -613,6 +614,22 @@ function deleteImage(index) {
 document.getElementById('articleForm').addEventListener('submit', function(e) {
     if (contentEditor) {
         contentEditor.save();
+    }
+
+    const titleValue = document.getElementById('title').value.trim();
+    const contentValue = contentEditor ? contentEditor.getValue().trim() : contentTextarea.value.trim();
+
+    if (!titleValue || !contentValue) {
+        e.preventDefault();
+        alert('Title and content are required.');
+        if (!titleValue) {
+            document.getElementById('title').focus();
+        } else if (contentEditor) {
+            contentEditor.focus();
+        } else {
+            contentTextarea.focus();
+        }
+        return;
     }
 
     if (!articleId) {
