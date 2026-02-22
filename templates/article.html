@@ -74,6 +74,26 @@
         color: #16a34a;
     }
 
+    .dna-box {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .dna-box h3 {
+        margin: 0 0 10px 0;
+        color: rgba(255, 255, 255, 0.95);
+    }
+
+    .dna-box p {
+        margin: 0;
+        word-break: break-word;
+        font-family: 'Courier New', monospace;
+        color: rgba(255, 255, 255, 0.85);
+    }
+
     .back-link {
         display: inline-block;
         color: var(--color-white);
@@ -108,6 +128,20 @@
     {% if article %}
         <h1 class="article-title">{{ article.title }}</h1>
         <div class="article-body">
+            {% if article.dna_sequence %}
+                <div class="dna-box">
+                    <h3>DNA Sequence</h3>
+                    <p>{{ article.dna_sequence }}</p>
+                </div>
+            {% endif %}
+
+            {% if article.dna_output %}
+                <div class="dna-box">
+                    <h3>DNA Output</h3>
+                    <p>{{ article.dna_output }}</p>
+                </div>
+            {% endif %}
+
             {{ article.content|safe }}
         </div>
         <a href="{{ url_for('list_articles') }}" class="back-link">← Back to Articles</a>

@@ -21,6 +21,7 @@
         <div class="dna-input-section">
             <h3 class="dna-section-title">Enter Your DNA Sequence</h3>
             <form id="dnaForm" method="POST" action="{{ url_for('check_dna') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <textarea 
                     id="dnaSequence" 
                     name="dna_sequence" 
@@ -126,6 +127,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('#dnaForm input[name="csrf_token"]').value
                     },
                     body: JSON.stringify({ dna_sequence: dnaSequence })
                 });

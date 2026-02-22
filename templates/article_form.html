@@ -381,7 +381,7 @@
         <div class="error-message">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" id="articleForm">
+    <form method="POST" id="articleForm" data-article-id="{{ article.id if article else '' }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="image_ids" id="imageIds" value="">
         
@@ -392,9 +392,29 @@
                 id="title" 
                 name="title" 
                 required 
-                value="{{ article.title if article else '' }}"
+                value="{{ article.title if article else initial_title|default('') }}"
                 placeholder="Enter your article title..."
             >
+        </div>
+
+        <div class="form-section">
+            <label for="dna_sequence">DNA Sequence (linked from analyzer)</label>
+            <textarea
+                id="dna_sequence"
+                name="dna_sequence"
+                placeholder="ATGC..."
+                style="min-height: 120px;"
+            >{{ article.dna_sequence if article else initial_dna_sequence|default('') }}</textarea>
+        </div>
+
+        <div class="form-section">
+            <label for="dna_output">DNA Output (amino acids)</label>
+            <textarea
+                id="dna_output"
+                name="dna_output"
+                placeholder="Glu Lys Ile Trp ..."
+                style="min-height: 120px;"
+            >{{ article.dna_output if article else initial_dna_output|default('') }}</textarea>
         </div>
 
         <div class="upload-section">
@@ -453,7 +473,8 @@
 <script>
 // Initialize URLs and data
 const uploadImageUrl = '{{ url_for("upload_image") }}';
-const articleId = {{ article.id if article else 'null' }};
+const articleIdRaw = document.getElementById('articleForm').dataset.articleId;
+const articleId = articleIdRaw ? Number(articleIdRaw) : null;
 
 const contentTextarea = document.getElementById('content');
 const contentEditor = CodeMirror.fromTextArea(contentTextarea, {
@@ -618,6 +639,7 @@ document.getElementById('articleForm').addEventListener('submit', function(e) {
 
     const titleValue = document.getElementById('title').value.trim();
     const contentValue = contentEditor ? contentEditor.getValue().trim() : contentTextarea.value.trim();
+    const dnaSequenceValue = document.getElementById('dna_sequence').value.trim().toUpperCase();
 
     if (!titleValue || !contentValue) {
         e.preventDefault();
@@ -631,6 +653,15 @@ document.getElementById('articleForm').addEventListener('submit', function(e) {
         }
         return;
     }
+
+    if (dnaSequenceValue && /[^ATGC]/.test(dnaSequenceValue)) {
+        e.preventDefault();
+        alert('DNA sequence can contain only A, T, G, C symbols.');
+        document.getElementById('dna_sequence').focus();
+        return;
+    }
+
+    document.getElementById('dna_sequence').value = dnaSequenceValue;
 
     if (!articleId) {
         // Only for new articles - pass image IDs to backend to link them

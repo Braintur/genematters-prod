@@ -5,6 +5,7 @@ from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from sqlalchemy import inspect, text
 import os
 import boto3
 from botocore.exceptions import ClientError
@@ -70,6 +71,8 @@ class Article(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    dna_sequence = db.Column(db.Text, nullable=True)
+    dna_output = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -91,6 +94,25 @@ def is_article_owner_or_admin(article):
 def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def ensure_article_schema():
+    """Ensure new article columns exist for existing databases"""
+    inspector = inspect(db.engine)
+    if not inspector.has_table('article'):
+        return
+
+    existing_columns = {column['name'] for column in inspector.get_columns('article')}
+    statements = []
+
+    if 'dna_sequence' not in existing_columns:
+        statements.append(text("ALTER TABLE article ADD COLUMN dna_sequence TEXT"))
+    if 'dna_output' not in existing_columns:
+        statements.append(text("ALTER TABLE article ADD COLUMN dna_output TEXT"))
+
+    if statements:
+        with db.engine.begin() as connection:
+            for statement in statements:
+                connection.execute(statement)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -223,13 +245,26 @@ def create_article():
         app.logger.warning("Create article POST received from user_id=%s", current_user.id)
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
+        dna_sequence = request.form.get('dna_sequence', '').strip()
+        dna_output = request.form.get('dna_output', '').strip()
         image_ids = request.form.get('image_ids', '').strip()  # Get image IDs from form
         
         if not title or not content:
             app.logger.warning("Create article validation failed for user_id=%s (title/content missing)", current_user.id)
-            return render_template('article_form.html', error='Title and content are required')
+            return render_template(
+                'article_form.html',
+                error='Title and content are required',
+                initial_dna_sequence=dna_sequence,
+                initial_dna_output=dna_output
+            )
         
-        article = Article(title=title, content=content, user_id=current_user.id)
+        article = Article(
+            title=title,
+            content=content,
+            dna_sequence=dna_sequence or None,
+            dna_output=dna_output or None,
+            user_id=current_user.id
+        )
         db.session.add(article)
         db.session.commit()
         app.logger.warning("Article created successfully: article_id=%s user_id=%s", article.id, current_user.id)
@@ -247,7 +282,15 @@ def create_article():
         
         return redirect(url_for('article', article_id=article.id))
     
-    return render_template('article_form.html')
+    initial_dna_sequence = request.args.get('dna_sequence', '').strip()
+    initial_dna_output = request.args.get('dna_output', '').strip()
+    initial_title = request.args.get('title', '').strip()
+    return render_template(
+        'article_form.html',
+        initial_dna_sequence=initial_dna_sequence,
+        initial_dna_output=initial_dna_output,
+        initial_title=initial_title
+    )
 
 @app.route("/article/<int:article_id>/edit", methods=['GET', 'POST'])
 @login_required
@@ -264,12 +307,16 @@ def edit_article(article_id):
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
+        dna_sequence = request.form.get('dna_sequence', '').strip()
+        dna_output = request.form.get('dna_output', '').strip()
         
         if not title or not content:
             return render_template('article_form.html', article=article_obj, error='Title and content are required')
         
         article_obj.title = title
         article_obj.content = content
+        article_obj.dna_sequence = dna_sequence or None
+        article_obj.dna_output = dna_output or None
         db.session.commit()
         
         return redirect(url_for('article', article_id=article_obj.id))
@@ -558,15 +605,29 @@ def upload_background():
 @app.route("/check_dna", methods=['POST'])
 def check_dna():
     data = request.get_json()
-    dna_sequence = data.get('dna_sequence', '')
+    dna_sequence = (data.get('dna_sequence', '') or '').strip().upper()
+
+    if not dna_sequence:
+        return jsonify({'error': 'DNA sequence is required'})
+
+    if any(char not in {'A', 'T', 'G', 'C'} for char in dna_sequence):
+        return jsonify({'error': 'Only A, T, G, C nucleotides are allowed'})
     
-    # Your DNA checking function here
     result = dna_id(dna_sequence)
-    
-    if result:
-        return jsonify({'redirect_url': url_for('article')})
-    else:
+    if result is None:
         return jsonify({'error': 'DNA analysis failed'})
+
+    dna_output = ' '.join(result) if result else 'No amino acids produced'
+    title = f"DNA Analysis {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+
+    return jsonify({
+        'redirect_url': url_for(
+            'create_article',
+            dna_sequence=dna_sequence,
+            dna_output=dna_output,
+            title=title
+        )
+    })
 
 def dna_id(dna_seq):
     code_tripplet = {"UUU":"Phe", "UUC":"Phe", "UUA":"Leu", "UUG":"Leu",
@@ -609,6 +670,7 @@ def forbidden(e):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
+        ensure_article_schema()
         
         # Ensure mikhail is a super_admin (if exists)
         try:
