@@ -95,6 +95,12 @@ def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def normalize_dna_sequence(value):
+    """Normalize DNA string for matching (uppercase, remove whitespace)."""
+    if not value:
+        return ''
+    return ''.join(str(value).upper().split())
+
 def ensure_article_schema():
     """Ensure new article columns exist for existing databases"""
     inspector = inspect(db.engine)
@@ -604,8 +610,8 @@ def upload_background():
 # ===== DNA CHECKING ROUTE (Original) =====
 @app.route("/check_dna", methods=['POST'])
 def check_dna():
-    data = request.get_json()
-    dna_sequence = (data.get('dna_sequence', '') or '').strip().upper()
+    data = request.get_json(silent=True) or {}
+    dna_sequence = normalize_dna_sequence(data.get('dna_sequence', ''))
 
     if not dna_sequence:
         return jsonify({'error': 'DNA sequence is required'})
@@ -613,20 +619,19 @@ def check_dna():
     if any(char not in {'A', 'T', 'G', 'C'} for char in dna_sequence):
         return jsonify({'error': 'Only A, T, G, C nucleotides are allowed'})
     
-    result = dna_id(dna_sequence)
-    if result is None:
-        return jsonify({'error': 'DNA analysis failed'})
+    candidate_articles = Article.query.filter(Article.dna_sequence.isnot(None)).order_by(Article.created_at.desc()).all()
+    matched_article = None
 
-    dna_output = ' '.join(result) if result else 'No amino acids produced'
-    title = f"DNA Analysis {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+    for article_obj in candidate_articles:
+        if normalize_dna_sequence(article_obj.dna_sequence) == dna_sequence:
+            matched_article = article_obj
+            break
+
+    if not matched_article:
+        return jsonify({'error': 'No article found for this DNA sequence'})
 
     return jsonify({
-        'redirect_url': url_for(
-            'create_article',
-            dna_sequence=dna_sequence,
-            dna_output=dna_output,
-            title=title
-        )
+        'redirect_url': url_for('article', article_id=matched_article.id)
     })
 
 def dna_id(dna_seq):
